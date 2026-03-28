@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat App</title>
+</head>
+<body>
+
+<h2>Chat App</h2>
+
+<!-- JOIN SECTION -->
+<div id="join-section">
+    <input id="username" placeholder="Enter name">
+    <input id="room" placeholder="Enter room">
+    <button onclick="joinChat()">Join</button>
+</div>
+
+<!-- CHAT SECTION -->
+<div id="chat-section" style="display:none;">
+
+    <h3 id="room-title"></h3>
+
+    <!-- ONLINE USERS -->
+    <div>
+        <h4>Online Users</h4>
+        <ul id="users"></ul>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div>
+        <h4 id="chat-mode">Room Chat</h4>
+
+        <input id="msg" placeholder="Type message">
+        <button onclick="sendMessage()">Send</button>
+
+        <p id="typing-status"></p>
+
+        <ul id="chat"></ul>
+    </div>
+
+</div>
+
+<script>
+let ws;
+let username;
+let room;
+let selectedUser = null;
+let typingTimeout;
+
+// JOIN CHAT
+function joinChat() {
+    username = document.getElementById("username").value;
+    room = document.getElementById("room").value;
+
+    if (!username || !room) {
+        alert("Enter username and room");
+        return;
+    }
+
+    ws = new WebSocket("ws://127.0.0.1:8000/ws");
+
+    ws.onopen = () => {
+        ws.send(username);
+        ws.send(room);
+    };
+
+    ws.onmessage = (event) => {
+        let data = JSON.parse(event.data);
+
+        // USER LIST
+        if (data.type === "users") {
+            let ul = document.getElementById("users");
+            ul.innerHTML = "";
+
+            data.users.forEach(user => {
+                if (user === username) return;
+
+                let li = document.createElement("li");
+                li.textContent = user;
+
+                li.onclick = () => selectUser(user);
+
+                ul.appendChild(li);
+            });
+        }
+
+        // TYPING
+        else if (data.type === "typing") {
+            let box = document.getElementById("typing-status");
+
+            if (data.status) {
+                box.textContent = data.user + " is typing...";
+            } else {
+                box.textContent = "";
+            }
+        }
+
+        //  STATUS
+        else if (data.type === "status") {
+            let li = document.createElement("li");
+            li.textContent = data.message;
+            li.style.color = "green";
+
+            document.getElementById("chat").appendChild(li);
+        }
+
+        // MESSAGES
+        else {
+            let li = document.createElement("li");
+
+            if (data.type === "private") {
+                li.textContent = "(Private) " + data.from + ": " + data.message;
+            } else {
+                li.textContent = data.user + ": " + data.message;
+            }
+
+            document.getElementById("chat").appendChild(li);
+        }
+    };
+
+    ws.onerror = (err) => {
+        console.log("WebSocket error:", err);
+    };
+
+    ws.onclose = () => {
+        console.log("Disconnected");
+    };
+
+    document.getElementById("join-section").style.display = "none";
+    document.getElementById("chat-section").style.display = "block";
+    document.getElementById("room-title").textContent = "Room: " + room;
+}
+
+// SELECT USER FOR PRIVATE CHAT
+function selectUser(user) {
+    selectedUser = user;
+    document.getElementById("chat-mode").textContent = "Private chat with: " + user;
+}
+
+// SEND MESSAGE
+function sendMessage() {
+    let input = document.getElementById("msg");
+    let message = input.value;
+
+    if (message.trim() === "") return;
+
+    let data = {
+        message: message
+    };
+
+    if (selectedUser) {
+        data.to = selectedUser;
+    }
+
+    ws.send(JSON.stringify(data));
+    input.value = "";
+
+    // stop typing
+    ws.send(JSON.stringify({
+        type: "typing",
+        status: false
+    }));
+}
+
+// TYPING DETECTION
+document.getElementById("msg").addEventListener("input", () => {
+    ws.send(JSON.stringify({
+        type: "typing",
+        status: true
+    }));
+
+    clearTimeout(typingTimeout);
+
+    typingTimeout = setTimeout(() => {
+        ws.send(JSON.stringify({
+            type: "typing",
+            status: false
+        }));
+    }, 1000);
+});
+</script>
+
+</body>
+</html>
