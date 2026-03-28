@@ -42,7 +42,7 @@ def get_previous_prices():
         database="presidio"
     )
 
-    cursor = conn.cursor(dictionary=True)
+    cursor = conn.cursor()
 
     # Get latest record BEFORE current run
     cursor.execute("""
