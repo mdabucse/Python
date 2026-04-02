@@ -40,7 +40,7 @@ real-time-dashboard/
 {
   "value": 32.5,
   "moving_avg": 30.2,
-  "z_score": 1.8,
+  "z_score": 1.8
   "alert": false
 }
 ```
