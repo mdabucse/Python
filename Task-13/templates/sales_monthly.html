@@ -1,0 +1,27 @@
+<html>
+<head>
+    <style>
+        body { font-family: Arial; }
+        h1 { text-align: center; }
+    </style>
+</head>
+<body>
+
+<h1>Monthly Sales Report — {{ month }}</h1>
+
+<p>Total Revenue: {{ total_revenue }}</p>
+<p>Units Sold: {{ total_units }}</p>
+<p>Avg Order Value: {{ avg_order_value }}</p>
+
+<h2>Revenue by Region</h2>
+<img src="{{ bar_chart }}" width="400">
+
+<h2>Daily Sales</h2>
+<img src="{{ line_chart }}" width="400">
+
+{% if region_data['West'] < 200000 %}
+<p style="color:red;">⚠ West region declining!</p>
+{% endif %}
+
+</body>
+</html>
